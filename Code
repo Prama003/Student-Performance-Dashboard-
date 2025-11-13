@@ -1,0 +1,87 @@
+# Student Performance Dashboard
+# Developed using Python, Pandas, Matplotlib, and SQLite
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import sqlite3
+
+# ---------------------------------------
+# STEP 1: Create or connect to database
+# ---------------------------------------
+conn = sqlite3.connect("students.db")
+cursor = conn.cursor()
+
+# Create table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS student_marks (
+    student_id INTEGER PRIMARY KEY,
+    name TEXT,
+    subject TEXT,
+    marks INTEGER
+)
+""")
+
+# ---------------------------------------
+# STEP 2: Insert sample data
+# ---------------------------------------
+sample_data = [
+    (1, "Amit", "Math", 85),
+    (2, "Priya", "Math", 78),
+    (3, "Rohan", "Science", 92),
+    (4, "Sneha", "Science", 66),
+    (5, "Arjun", "English", 74),
+    (6, "Riya", "English", 88),
+    (7, "Kabir", "Math", 59),
+    (8, "Meera", "Science", 81)
+]
+
+cursor.executemany("INSERT OR IGNORE INTO student_marks VALUES (?, ?, ?, ?)", sample_data)
+conn.commit()
+
+# ---------------------------------------
+# STEP 3: Load data using Pandas
+# ---------------------------------------
+df = pd.read_sql_query("SELECT * FROM student_marks", conn)
+print("Student Data:")
+print(df)
+
+# ---------------------------------------
+# STEP 4: Calculate basic statistics
+# ---------------------------------------
+print("\nAverage marks per subject:")
+avg_marks = df.groupby('subject')['marks'].mean()
+print(avg_marks)
+
+# ---------------------------------------
+# STEP 5: Visualize Data
+# ---------------------------------------
+# Bar chart for subject-wise average
+avg_marks.plot(kind='bar', color=['skyblue', 'lightgreen', 'salmon'])
+plt.title("Average Marks by Subject")
+plt.xlabel("Subject")
+plt.ylabel("Average Marks")
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+# ---------------------------------------
+# STEP 6: Top performing students
+# ---------------------------------------
+top_students = df.sort_values(by='marks', ascending=False).head(3)
+print("\nTop 3 Performing Students:")
+print(top_students[['name', 'subject', 'marks']])
+
+# ---------------------------------------
+# STEP 7: Pie Chart for performance distribution
+# ---------------------------------------
+performance_bins = [0, 60, 75, 90, 100]
+labels = ['Below Avg', 'Average', 'Good', 'Excellent']
+df['Category'] = pd.cut(df['marks'], bins=performance_bins, labels=labels, include_lowest=True)
+
+category_count = df['Category'].value_counts()
+category_count.plot(kind='pie', autopct='%1.1f%%', startangle=90, colors=['#ff9999','#66b3ff','#99ff99','#ffcc99'])
+plt.title("Performance Distribution")
+plt.ylabel("")
+plt.show()
+
+# Close connection
+conn.close()
